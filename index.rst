@@ -12,8 +12,10 @@
    :maxdepth: 2
    :caption: Contents
 
-   docs/commit_protocols/commit_protocols
-   docs/rubric
+
+   docs/two_phase/two_phase
+   docs/three_phase/three_phase
+
    docs/commit_protocols/code
 
 .. ATTENTION::
