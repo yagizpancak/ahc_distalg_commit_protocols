@@ -35,7 +35,7 @@
 \def\false{\textbf{F}}
 
 
-\author[John Doe]{John Doe\\\href{mailto:john@example.com}{john@example.com}}
+\author[Yağızcan Pançak]{Yağızcan Pançak\\\href{mailto:yagizcan.pancak@metu.edu.tr}{yagizcan.pancak@metu.edu.tr}}
 %\author[J.\,Doe \& J.\,Doe]
 %{%
 %  \texorpdfstring{
@@ -53,8 +53,8 @@
 %  {John Doe \& Jane Doe}
 %}
 
-\title[WINS Beamer Template]{WINS Lab Beamer Presentation Template}
-\subtitle[Short SubTitle]{How to Prepare a Nice Presentation}
+\title[Commit Protocols]{Commit Protocols}
+\subtitle[SubTitle]{Two-Phase (2PC) and Three-Phase (3PC) Commit Protocols}
 %\date{} 
 
 \begin{document}
@@ -91,34 +91,64 @@
 %        \partpage
 %\end{frame}
 %
-\section{The Problem}
+\section{Fault Tolerance in Distributed Systems}
 %\begin{frame}
 %        \sectionpage
 %\end{frame}
 
-\begin{frame}{The problem}
-\framesubtitle{Tell a \alert{STORY} from the background to the conclusion}
-\begin{block}{The Problem Name} 
-Explain the problem here. Instead of using the term `The problem'', please use specific name for the problem. Tell us a story. Provide a picture for the scenario depicting the problem. Set the scene for average audience.
+\begin{frame}{Distributed Commit Problem}
+\framesubtitle{The distributed commit problem refers to ensuring that all nodes in a distributed system either commit or abort a transaction together, preventing inconsistencies in data across the system.}
+\begin{block}{One-Phase Commit Protocol} 
+Distributed commit is often established by a coordinator. In a simple
+scheme, this coordinator tells all other processes that are also involved, called
+participants, whether to (locally) perform the operation in question. This
+scheme is referred to as a \textbf{one-phase commit protocol}. The drawback is that if one of the participants cannot actually perform the operation,
+there is no way to tell the coordinator.
 \end{block}
-Spend at least \textbf{1.5-2 minutes per slide} on average.
-
-The introduction should be something like ``I will be presenting title of talk. This is joint work with your colleagues or advisor at institution.'' 
 \note{}
 \end{frame}
 
-\section{The Contribution}
+\section{The Contribution: Two-Phase Commit Protocol (2PC)}
 \begin{frame}
-\frametitle{What is the solution/contribution}
+\frametitle{Two-Phase Commit Protocol (2PC)}
 \framesubtitle{}
-Explain \textbf{YOUR} contributions. Go top-down. Give the brief introduction to the contributions at the beginning of the presentation. A slide should have no more than five to six lines of text or bullets. Prefer figures instead of text: A picture is worth a thousand words.
+The Two-Phase Commit Protocol (2PC) ensures atomicity in distributed transactions efficiently. 
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.3]{figures/2PC.png}
+    \caption{Two-Phase Commit Protocol (2PC)}
+    \label{fig:2pc}
+\end{figure}
 \begin{itemize}
-\item Communicate the Key Ideas
-\item Don’t get Bogged Down in Details
-\item Use a Top-down Approach
+\item Offers a systematic approach for achieving atomicity.
+\item Coordinates between a coordinator and participants.
+\item Coordinator sends "prepare" message, participants respond.
+\item Coordinator makes decision, sends "commit" or "abort".
+\item Guarantees atomicity, minimizes inconsistencies.
 \end{itemize}
 
-The audience will remember at most one single message \textbf{Which message you want to audience to remember? Can you express this message in less than a minute in an elevator?}
+\end{frame}
+
+\section{The Contribution: Three-Phase Commit Protocol (3PC)}
+\begin{frame}
+\frametitle{Three-Phase Commit Protocol (3PC)}
+\framesubtitle{}
+The Three-Phase Commit Protocol (3PC) enhances distributed transaction atomicity with an additional phase for improved fault tolerance.
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.14]{figures/3PC.png}
+    \caption{Three-Phase Commit Protocol (3PC)}
+    \label{fig:3pc}
+\end{figure}
+\begin{itemize}
+\item Introduces an additional phase for enhanced fault tolerance.
+\item Facilitates progressive commit decisions to mitigate risks.
+\item Coordinator solicits participant readiness to commit.
+\item Confirms commit readiness before final decision.
+\item Coordinator makes a definitive commit or abort decision.
+\end{itemize}
 
 \end{frame}
 
@@ -126,8 +156,8 @@ The audience will remember at most one single message \textbf{Which message you 
 \section{Motivation/Importance}
 \begin{frame}
 \frametitle{Motivation/Importance}
-\framesubtitle{``Gain upon solving the problem, pain if not solved'' should be explained}
-Explain why the problem is so important. Throw in a little philosophy if necessary. How does the problem fit into the larger picture? If it involves a model of a real-world phenomenon, then how good is the model? What are its applications? What makes the problem nontrivial? You can return to these issues in the Conclusion, when you can re-address them with the benefit of hindsight.
+\framesubtitle{Navigating Consensus: The Distributed Commit Challenge}
+The distributed commit problem is pivotal in ensuring agreement among system nodes on transaction outcomes in distributed systems. It poses philosophical questions about autonomy versus consensus and is addressed by models like the commit protocols, despite limitations. Its applications are widespread, but its complexity stems from reconciling consensus in fault-prone distributed environments, emphasizing the need for nuanced solutions.
 \end{frame}
 
 \section{Background/Model/Definitions/Previous Works}
@@ -137,15 +167,28 @@ Explain why the problem is so important. Throw in a little philosophy if necessa
 
 \frame{
 \frametitle{Model, Definitions}
-\framesubtitle{Formal definition of a Stochastic Process}
-The use of terminology and jargon should be kept to a minimum, but is impossible to avoid entirely. All terms must be introduced early. It is also useful to remind the audience of the definitions at critical points later in the talk.
+\framesubtitle{Formal definition of Commit Protocol}
 
-Background and this slide can be combined....
+\textbf{Coordinator:} Initiates and coordinates the distributed transaction by communicating with participating nodes to ensure consistency.
+
+\textbf{Nodes:}  Participate in the distributed transaction by responding to the coordinator's messages, executing transactional operations, and maintaining transactional integrity.
+
+\textbf{Prepare Phase:} The coordinator sends a "prepare" message to all participants, asking if they are ready to commit the transaction. Each participant replies with either a "yes" or "no" message.
+
+\textbf{Can Commit Phase:}  The coordinator asks participants if they can commit the transaction without actually committing it. Participants reply with "yes" or "no".
+
+\textbf{Commit Phase:} If all participants reply "yes" during the "can commit" phase, the coordinator proceeds with the commit phase; otherwise, it aborts the transaction.
 }
 
 \subsection{Background, Previous Works}
 \begin{frame}{Background}
-Research is not usually carried out in a vacuum. There will almost always be other relevant or related work, which you should describe. Present an orderly synopsis of these previously- obtained results. A table is often used for this purpose. Be sure to mention the author of each paper and its date of publication. \textbf{Compare and contrast them with each other and with your paper.}
+
+\begin{itemize}
+    \item The Two-Phase Commit protocol ensures atomicity in distributed systems by employing two phases: prepare and commit, as introduced by Gray 1978 \cite{gray_1978}.
+
+    \item The Three-Phase Commit protocol enhances the Two-Phase Commit by introducing a pre-commit phase, reducing the likelihood of blocking in case of coordinator failure, as proposed by Skeen 1981\cite{skeen_1981}
+\end{itemize}
+
 \end{frame}
 
 
