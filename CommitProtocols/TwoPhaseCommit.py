@@ -15,10 +15,12 @@ __status__ = "Production"
 __version__ = "0.0.1"
 
 from enum import Enum
+from logging import getLogger
 
 from adhoccomputing.GenericModel import GenericModel
-from adhoccomputing.Generics import EventTypes, Event
+from adhoccomputing.Generics import Event
 
+logger = getLogger("AHC")
 
 class TwoPhaseCoordinatorEventTypes(Enum):
     VOTE_ABORT = "VOTE_ABORT"
@@ -29,6 +31,10 @@ class TwoPhaseParticipantEventTypes(Enum):
     VOTE_REQUEST = "VOTE_REQUEST"
     ABORT = "ABORT"
     COMMIT = "COMMIT"
+
+class TwoPhaseLocalCommitEventTypes(Enum):
+    COMMIT = "COMMIT"
+    ABORT = "ABORT"
 
 class TwoPhaseCommitCoordinator(GenericModel):
     def __init__(self, componentname, componentinstancenumber, context=None, configurationparameters=None, num_worker_threads=1, topology=None):
@@ -52,3 +58,25 @@ class TwoPhaseCommitCoordinator(GenericModel):
 
     def on_vote_abort(self):
         self.send_down(Event(self, TwoPhaseParticipantEventTypes.ABORT))
+
+
+class TwoPhaseCommitParticipant(GenericModel):
+    def __init__(self, componentname, componentinstancenumber, context=None, configurationparameters=None, num_worker_threads=1, topology=None):
+        super().__init__(componentname, componentinstancenumber, context, configurationparameters, num_worker_threads, topology)
+
+        self.eventhandlers[TwoPhaseParticipantEventTypes.VOTE_REQUEST] = self.on_vote_request
+        self.eventhandlers[TwoPhaseParticipantEventTypes.COMMIT] = self.on_commit
+        self.eventhandlers[TwoPhaseParticipantEventTypes.ABORT] = self.on_abort
+
+    def on_vote_request(self, local_event):
+        if local_event == TwoPhaseLocalCommitEventTypes.COMMIT:
+            self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_COMMIT))
+        elif local_event == TwoPhaseLocalCommitEventTypes.ABORT:
+            self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_ABORT))
+
+
+    def on_commit(self):
+        logger.debug(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} COMMITTED")
+
+    def on_abort(self):
+        logger.debug(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} ABORTED")

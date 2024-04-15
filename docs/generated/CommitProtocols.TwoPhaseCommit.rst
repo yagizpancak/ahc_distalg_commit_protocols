@@ -20,7 +20,13 @@
    .. autoclass:: TwoPhaseCommitCoordinator
       :members:
       :undoc-members:
+   .. autoclass:: TwoPhaseCommitParticipant
+      :members:
+      :undoc-members:
    .. autoclass:: TwoPhaseCoordinatorEventTypes
+      :members:
+      :undoc-members:
+   .. autoclass:: TwoPhaseLocalCommitEventTypes
       :members:
       :undoc-members:
    .. autoclass:: TwoPhaseParticipantEventTypes
