@@ -17,13 +17,19 @@
 
    .. autosummary::
    
-   .. autoclass:: TwoPhaseCommitCoordinator
+   .. autoclass:: ThreePhaseCommitCoordinator
       :members:
       :undoc-members:
-   .. autoclass:: TwoPhaseCoordinatorEventTypes
+   .. autoclass:: ThreePhaseCommitParticipant
       :members:
       :undoc-members:
-   .. autoclass:: TwoPhaseParticipantEventTypes
+   .. autoclass:: ThreePhaseCoordinatorEventTypes
+      :members:
+      :undoc-members:
+   .. autoclass:: ThreePhaseLocalCommitEventTypes
+      :members:
+      :undoc-members:
+   .. autoclass:: ThreePhaseParticipantEventTypes
       :members:
       :undoc-members:
    
