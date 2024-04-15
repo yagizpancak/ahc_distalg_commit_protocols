@@ -15,12 +15,7 @@
 
    docs/two_phase/two_phase
    docs/three_phase/three_phase
-
-   docs/commit_protocols/code
-
-.. ATTENTION::
-   For RST details, please refer to `reStructuredText Documentation <https://docutils.sourceforge.io/rst.html>`_.
-
+   docs/code
 
 
 Indices and tables
