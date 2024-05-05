@@ -23,21 +23,44 @@ from adhoccomputing.Generics import Event
 logger = getLogger("AHC")
 
 class TwoPhaseCoordinatorEventTypes(Enum):
+    """
+        Enumeration of different event types for the coordinator
+    """
     VOTE_ABORT = "VOTE_ABORT"
     VOTE_COMMIT = "VOTE_COMMIT"
     COMMIT = "COMMIT"
 
 class TwoPhaseParticipantEventTypes(Enum):
+    """
+        Enumeration of different event types for the participant
+    """
     VOTE_REQUEST = "VOTE_REQUEST"
     ABORT = "ABORT"
     COMMIT = "COMMIT"
 
 class TwoPhaseLocalCommitEventTypes(Enum):
+    """
+        Enumeration of participant local commit decision
+    """
     COMMIT = "COMMIT"
     ABORT = "ABORT"
 
 class TwoPhaseCommitCoordinator(GenericModel):
+    """
+        Class for the two-phase commit coordinator.
+    """
     def __init__(self, componentname, componentinstancenumber, context=None, configurationparameters=None, num_worker_threads=1, topology=None):
+        """
+            Initialize the two-phase commit coordinator and set up event handlers.
+
+            Parameters
+            ----------
+            componentname :str
+                Component name
+            componentinstancenumber :int
+                Component instance number
+
+        """
         super().__init__(componentname, componentinstancenumber, context, configurationparameters, num_worker_threads, topology)
 
         self.number_of_participants = len(super().connectors)
@@ -47,21 +70,48 @@ class TwoPhaseCommitCoordinator(GenericModel):
         self.eventhandlers[TwoPhaseCoordinatorEventTypes.VOTE_ABORT] = self.on_vote_abort
 
     def on_commit(self):
+        """
+            Handler for COMMIT event
+            Sends VOTE_REQUEST to all participants.
+        """
         self.number_of_participants = len(super().connectors)
         self.commit_count = 0
         self.send_down(Event(self, TwoPhaseParticipantEventTypes.VOTE_REQUEST))
 
     def on_vote_commit(self):
+        """
+            Handler for VOTE_COMMIT event.
+            Increments commit count and checks if all participants have voted commit.
+            If so, sends COMMIT to all participants.
+        """
         self.commit_count += 1
         if self.commit_count == self.number_of_participants:
             self.send_down(Event(self, TwoPhaseParticipantEventTypes.COMMIT))
 
     def on_vote_abort(self):
+        """
+            Handler for VOTE_ABORT event.
+            Sends ABORT to all participants.
+        """
         self.send_down(Event(self, TwoPhaseParticipantEventTypes.ABORT))
 
 
 class TwoPhaseCommitParticipant(GenericModel):
+    """
+        Class for the two-phase commit participant.
+    """
     def __init__(self, componentname, componentinstancenumber, context=None, configurationparameters=None, num_worker_threads=1, topology=None):
+        """
+            Initialize the two-phase commit participant and set up event handlers.
+
+            Parameters
+            ----------
+            componentname :str
+                Component name
+            componentinstancenumber :int
+                Component instance number
+
+        """
         super().__init__(componentname, componentinstancenumber, context, configurationparameters, num_worker_threads, topology)
 
         self.eventhandlers[TwoPhaseParticipantEventTypes.VOTE_REQUEST] = self.on_vote_request
@@ -69,6 +119,15 @@ class TwoPhaseCommitParticipant(GenericModel):
         self.eventhandlers[TwoPhaseParticipantEventTypes.ABORT] = self.on_abort
 
     def on_vote_request(self, local_event):
+        """
+            Handler for VOTE_REQUEST event.
+            Depending on local event type, sends VOTE_COMMIT or VOTE_ABORT to coordinator.
+
+            Parameters
+            ----------
+            local_event : TwoPhaseParticipantEventTypes
+                Local commit event type
+        """
         if local_event == TwoPhaseLocalCommitEventTypes.COMMIT:
             self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_COMMIT))
         elif local_event == TwoPhaseLocalCommitEventTypes.ABORT:
@@ -76,7 +135,13 @@ class TwoPhaseCommitParticipant(GenericModel):
 
 
     def on_commit(self):
+        """
+            Handler for COMMIT event. Logs that the participant has committed.
+        """
         logger.debug(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} COMMITTED")
 
     def on_abort(self):
+        """
+            Handler for ABORT event. Logs that the participant has aborted.
+        """
         logger.debug(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} ABORTED")
