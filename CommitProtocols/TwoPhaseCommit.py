@@ -17,6 +17,7 @@ __version__ = "0.0.1"
 from enum import Enum
 from logging import getLogger
 
+import networkx
 from adhoccomputing.GenericModel import GenericModel
 from adhoccomputing.Generics import Event
 
@@ -63,7 +64,6 @@ class TwoPhaseCommitCoordinator(GenericModel):
         """
         super().__init__(componentname, componentinstancenumber, context, configurationparameters, num_worker_threads, topology)
 
-        self.number_of_participants = len(super().connectors)
         self.commit_count = 0
         self.eventhandlers[TwoPhaseCoordinatorEventTypes.COMMIT] = self.on_commit
         self.eventhandlers[TwoPhaseCoordinatorEventTypes.VOTE_COMMIT] = self.on_vote_commit
@@ -74,11 +74,11 @@ class TwoPhaseCommitCoordinator(GenericModel):
             Handler for COMMIT event
             Sends VOTE_REQUEST to all participants.
         """
-        self.number_of_participants = len(super().connectors)
+        self.number_of_participants = len(self.connectors)
         self.commit_count = 0
-        self.send_down(Event(self, TwoPhaseParticipantEventTypes.VOTE_REQUEST))
+        self.send_down(Event(self, TwoPhaseParticipantEventTypes.VOTE_REQUEST, TwoPhaseLocalCommitEventTypes.ABORT))
 
-    def on_vote_commit(self):
+    def on_vote_commit(self, eventobj: Event):
         """
             Handler for VOTE_COMMIT event.
             Increments commit count and checks if all participants have voted commit.
@@ -86,14 +86,14 @@ class TwoPhaseCommitCoordinator(GenericModel):
         """
         self.commit_count += 1
         if self.commit_count == self.number_of_participants:
-            self.send_down(Event(self, TwoPhaseParticipantEventTypes.COMMIT))
+            self.send_down(Event(self, TwoPhaseParticipantEventTypes.COMMIT, None))
 
-    def on_vote_abort(self):
+    def on_vote_abort(self, eventobj: Event):
         """
             Handler for VOTE_ABORT event.
             Sends ABORT to all participants.
         """
-        self.send_down(Event(self, TwoPhaseParticipantEventTypes.ABORT))
+        self.send_down(Event(self, TwoPhaseParticipantEventTypes.ABORT, None))
 
 
 class TwoPhaseCommitParticipant(GenericModel):
@@ -118,7 +118,7 @@ class TwoPhaseCommitParticipant(GenericModel):
         self.eventhandlers[TwoPhaseParticipantEventTypes.COMMIT] = self.on_commit
         self.eventhandlers[TwoPhaseParticipantEventTypes.ABORT] = self.on_abort
 
-    def on_vote_request(self, local_event):
+    def on_vote_request(self, eventobj: Event):
         """
             Handler for VOTE_REQUEST event.
             Depending on local event type, sends VOTE_COMMIT or VOTE_ABORT to coordinator.
@@ -128,20 +128,23 @@ class TwoPhaseCommitParticipant(GenericModel):
             local_event : TwoPhaseParticipantEventTypes
                 Local commit event type
         """
-        if local_event == TwoPhaseLocalCommitEventTypes.COMMIT:
-            self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_COMMIT))
-        elif local_event == TwoPhaseLocalCommitEventTypes.ABORT:
-            self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_ABORT))
+        if eventobj.eventcontent == TwoPhaseLocalCommitEventTypes.COMMIT:
+            self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_COMMIT, None))
+        elif eventobj.eventcontent == TwoPhaseLocalCommitEventTypes.ABORT:
+            self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_ABORT, None))
 
 
-    def on_commit(self):
+    def on_commit(self, eventobj: Event):
         """
             Handler for COMMIT event. Logs that the participant has committed.
         """
-        logger.debug(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} COMMITTED")
+        print(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} COMMITTED")
 
-    def on_abort(self):
+    def on_abort(self, eventobj: Event):
         """
             Handler for ABORT event. Logs that the participant has aborted.
         """
-        logger.debug(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} ABORTED")
+        print(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} ABORTED")
+
+
+networkx.graph_atlas(10)
