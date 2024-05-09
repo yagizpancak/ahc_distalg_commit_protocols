@@ -1,9 +1,7 @@
-import random
-
 from adhoccomputing.Generics import *
 from adhoccomputing.Experimentation.Topology import Topology
 
-from CommitProtocols.TwoPhaseCommit import *
+from CommitProtocols.ThreePhaseCommit import *
 import time
 
 class Node(GenericModel):
@@ -18,20 +16,33 @@ class Node(GenericModel):
 
         n = int(input("Participant Size: "))
         abort = input("Abort? (y/n): ")
+        ready = input("Ready? (y/n): ")
         # SUBCOMPONENTS
-        self.Coordinator = TwoPhaseCommitCoordinator("Coordinator", componentinstancenumber)
+        self.Coordinator = ThreePhaseCommitCoordinator("Coordinator", componentinstancenumber)
         self.components.append(self.Coordinator)
         self.participants = list()
 
         for i in range(n):
-            self.participants.append(TwoPhaseCommitParticipant(f"Participant {i}", componentinstancenumber))
+            self.participants.append(ThreePhaseCommitParticipant(f"Participant {i}", componentinstancenumber))
             self.components.append((self.participants[i]))
             self.Coordinator.D(self.participants[i])
             self.participants[i].U(self.Coordinator)
 
         if abort.lower() == "y":
-            i = random.randint(0, len(self.participants) - 1)
-            self.participants[i].local_commit = TwoPhaseLocalCommitEventTypes.ABORT
+            i = len(self.participants)
+            self.participants.append(ThreePhaseCommitParticipant(f"Participant {i}", componentinstancenumber,
+                                                               local_commit=ThreePhaseLocalCommitEventTypes.LOCAL_ABORT))
+            self.components.append((self.participants[i]))
+            self.Coordinator.D(self.participants[i])
+            self.participants[i].U(self.Coordinator)
+
+        if ready.lower() == "n":
+            i = len(self.participants)
+            self.participants.append(ThreePhaseCommitParticipant(f"Participant {i}", componentinstancenumber,
+                                                                 local_ready=False))
+            self.components.append((self.participants[i]))
+            self.Coordinator.D(self.participants[i])
+            self.participants[i].U(self.Coordinator)
 
 
 def main():
@@ -52,3 +63,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

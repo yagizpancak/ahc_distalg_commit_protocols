@@ -17,9 +17,8 @@ __version__ = "0.0.1"
 from enum import Enum
 from logging import getLogger
 
-import networkx
 from adhoccomputing.GenericModel import GenericModel
-from adhoccomputing.Generics import Event
+from adhoccomputing.Generics import Event, ConnectorTypes
 
 logger = getLogger("AHC")
 
@@ -27,8 +26,7 @@ class TwoPhaseCoordinatorEventTypes(Enum):
     """
         Enumeration of different event types for the coordinator
     """
-    VOTE_ABORT = "VOTE_ABORT"
-    VOTE_COMMIT = "VOTE_COMMIT"
+    VOTE_RESPONSE = "VOTE_RESPONSE"
     COMMIT = "COMMIT"
 
 class TwoPhaseParticipantEventTypes(Enum):
@@ -36,15 +34,15 @@ class TwoPhaseParticipantEventTypes(Enum):
         Enumeration of different event types for the participant
     """
     VOTE_REQUEST = "VOTE_REQUEST"
-    ABORT = "ABORT"
-    COMMIT = "COMMIT"
+    GLOBAL_ABORT = "GLOBAL_ABORT"
+    GLOBAL_COMMIT = "GLOBAL_COMMIT"
 
 class TwoPhaseLocalCommitEventTypes(Enum):
     """
         Enumeration of participant local commit decision
     """
-    COMMIT = "COMMIT"
-    ABORT = "ABORT"
+    LOCAL_COMMIT = "LOCAL_COMMIT"
+    LOCAL_ABORT = "LOCAL_ABORT"
 
 class TwoPhaseCommitCoordinator(GenericModel):
     """
@@ -60,42 +58,41 @@ class TwoPhaseCommitCoordinator(GenericModel):
                 Component name
             componentinstancenumber :int
                 Component instance number
-
         """
         super().__init__(componentname, componentinstancenumber, context, configurationparameters, num_worker_threads, topology)
 
         self.commit_count = 0
         self.eventhandlers[TwoPhaseCoordinatorEventTypes.COMMIT] = self.on_commit
-        self.eventhandlers[TwoPhaseCoordinatorEventTypes.VOTE_COMMIT] = self.on_vote_commit
-        self.eventhandlers[TwoPhaseCoordinatorEventTypes.VOTE_ABORT] = self.on_vote_abort
+        self.eventhandlers[TwoPhaseCoordinatorEventTypes.VOTE_RESPONSE] = self.on_vote_response
 
     def on_commit(self):
         """
             Handler for COMMIT event
             Sends VOTE_REQUEST to all participants.
         """
-        self.number_of_participants = len(self.connectors)
+        self.number_of_participants = len(self.connectors[ConnectorTypes.DOWN])
         self.commit_count = 0
-        self.send_down(Event(self, TwoPhaseParticipantEventTypes.VOTE_REQUEST, TwoPhaseLocalCommitEventTypes.COMMIT))
+        self.send_down(Event(self, TwoPhaseParticipantEventTypes.VOTE_REQUEST, None))
+        logger.info(f"NAME:{self.componentname} SEND VOTE REQUEST")
 
-    def on_vote_commit(self, eventobj: Event):
+
+    def on_vote_response(self, eventobj: Event):
         """
-            Handler for VOTE_COMMIT event.
+            Handler for VOTE_RESPONSE event.
             Increments commit count and checks if all participants have voted commit.
             If so, sends COMMIT to all participants.
+            If one participant have voted send ABORT to all participants.
         """
         self.commit_count += 1
-        if self.commit_count == self.number_of_participants:
-            self.send_down(Event(self, TwoPhaseParticipantEventTypes.COMMIT, None))
+        if eventobj.eventcontent == TwoPhaseLocalCommitEventTypes.LOCAL_ABORT:
+            self.commit_count = 0
+            self.send_down(Event(self, TwoPhaseParticipantEventTypes.GLOBAL_ABORT, None))
+            logger.info(f"NAME:{self.componentname} ABORT RECEIVED, ABORTING")
 
-    def on_vote_abort(self, eventobj: Event):
-        """
-            Handler for VOTE_ABORT event.
-            Sends ABORT to all participants.
-        """
-        self.commit_count += 1
         if self.commit_count == self.number_of_participants:
-            self.send_down(Event(self, TwoPhaseParticipantEventTypes.ABORT, None))
+            self.send_down(Event(self, TwoPhaseParticipantEventTypes.GLOBAL_COMMIT, None))
+            logger.info(f"NAME:{self.componentname} ALL VOTES COMMIT, COMMITTING")
+
 
 
 class TwoPhaseCommitParticipant(GenericModel):
@@ -118,8 +115,8 @@ class TwoPhaseCommitParticipant(GenericModel):
         self.local_commit = local_commit
 
         self.eventhandlers[TwoPhaseParticipantEventTypes.VOTE_REQUEST] = self.on_vote_request
-        self.eventhandlers[TwoPhaseParticipantEventTypes.COMMIT] = self.on_commit
-        self.eventhandlers[TwoPhaseParticipantEventTypes.ABORT] = self.on_abort
+        self.eventhandlers[TwoPhaseParticipantEventTypes.GLOBAL_COMMIT] = self.on_commit
+        self.eventhandlers[TwoPhaseParticipantEventTypes.GLOBAL_ABORT] = self.on_abort
 
     def on_vote_request(self, eventobj: Event):
         """
@@ -131,23 +128,26 @@ class TwoPhaseCommitParticipant(GenericModel):
             local_event : TwoPhaseParticipantEventTypes
                 Local commit event type
         """
-        if self.local_commit == TwoPhaseLocalCommitEventTypes.COMMIT:
-            self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_COMMIT, None))
-        elif self.local_commit == TwoPhaseLocalCommitEventTypes.ABORT:
-            self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_ABORT, None))
+        if self.local_commit == TwoPhaseLocalCommitEventTypes.LOCAL_COMMIT:
+            self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_RESPONSE,
+                               TwoPhaseLocalCommitEventTypes.LOCAL_COMMIT))
+            logger.info(f"NAME:{self.componentname} SEND COMMIT VOTE")
+
+        elif self.local_commit == TwoPhaseLocalCommitEventTypes.LOCAL_ABORT:
+            self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_RESPONSE,
+                               TwoPhaseLocalCommitEventTypes.LOCAL_ABORT))
+            logger.info(f"NAME:{self.componentname} SEND ABORT VOTE")
+
 
 
     def on_commit(self, eventobj: Event):
         """
             Handler for COMMIT event. Logs that the participant has committed.
         """
-        print(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} COMMITTED")
+        logger.info(f"NAME:{self.componentname} COMMITTED")
 
     def on_abort(self, eventobj: Event):
         """
             Handler for ABORT event. Logs that the participant has aborted.
         """
-        print(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} ABORTED\n")
-
-
-networkx.graph_atlas(10)
+        logger.info(f"NAME:{self.componentname} ABORTED")
