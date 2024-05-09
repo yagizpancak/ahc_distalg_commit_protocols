@@ -76,7 +76,7 @@ class TwoPhaseCommitCoordinator(GenericModel):
         """
         self.number_of_participants = len(self.connectors)
         self.commit_count = 0
-        self.send_down(Event(self, TwoPhaseParticipantEventTypes.VOTE_REQUEST, TwoPhaseLocalCommitEventTypes.ABORT))
+        self.send_down(Event(self, TwoPhaseParticipantEventTypes.VOTE_REQUEST, TwoPhaseLocalCommitEventTypes.COMMIT))
 
     def on_vote_commit(self, eventobj: Event):
         """
@@ -93,14 +93,16 @@ class TwoPhaseCommitCoordinator(GenericModel):
             Handler for VOTE_ABORT event.
             Sends ABORT to all participants.
         """
-        self.send_down(Event(self, TwoPhaseParticipantEventTypes.ABORT, None))
+        self.commit_count += 1
+        if self.commit_count == self.number_of_participants:
+            self.send_down(Event(self, TwoPhaseParticipantEventTypes.ABORT, None))
 
 
 class TwoPhaseCommitParticipant(GenericModel):
     """
         Class for the two-phase commit participant.
     """
-    def __init__(self, componentname, componentinstancenumber, context=None, configurationparameters=None, num_worker_threads=1, topology=None):
+    def __init__(self, componentname, componentinstancenumber, local_commit=TwoPhaseLocalCommitEventTypes.COMMIT, context=None, configurationparameters=None, num_worker_threads=1, topology=None):
         """
             Initialize the two-phase commit participant and set up event handlers.
 
@@ -113,6 +115,7 @@ class TwoPhaseCommitParticipant(GenericModel):
 
         """
         super().__init__(componentname, componentinstancenumber, context, configurationparameters, num_worker_threads, topology)
+        self.local_commit = local_commit
 
         self.eventhandlers[TwoPhaseParticipantEventTypes.VOTE_REQUEST] = self.on_vote_request
         self.eventhandlers[TwoPhaseParticipantEventTypes.COMMIT] = self.on_commit
@@ -128,9 +131,9 @@ class TwoPhaseCommitParticipant(GenericModel):
             local_event : TwoPhaseParticipantEventTypes
                 Local commit event type
         """
-        if eventobj.eventcontent == TwoPhaseLocalCommitEventTypes.COMMIT:
+        if self.local_commit == TwoPhaseLocalCommitEventTypes.COMMIT:
             self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_COMMIT, None))
-        elif eventobj.eventcontent == TwoPhaseLocalCommitEventTypes.ABORT:
+        elif self.local_commit == TwoPhaseLocalCommitEventTypes.ABORT:
             self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_ABORT, None))
 
 
@@ -144,7 +147,7 @@ class TwoPhaseCommitParticipant(GenericModel):
         """
             Handler for ABORT event. Logs that the participant has aborted.
         """
-        print(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} ABORTED")
+        print(f"NAME:{self.componentname} COMPID: {self.componentinstancenumber} ABORTED\n")
 
 
 networkx.graph_atlas(10)
