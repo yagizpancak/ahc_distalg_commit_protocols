@@ -31,11 +31,11 @@ class Node(GenericModel):
 
         if abort.lower() == "y":
             i = random.randint(0, len(self.participants) - 1)
-            self.participants[i].local_commit = TwoPhaseLocalCommitEventTypes.ABORT
+            self.participants[i].local_commit = TwoPhaseLocalCommitEventTypes.LOCAL_ABORT
 
 
 def main():
-    setAHCLogLevel(INFO)
+    #setAHCLogLevel(INFO)
     topo = Topology()
     topo.construct_single_node(Node, 0)
 
@@ -47,7 +47,7 @@ def main():
     topo.exit()
 
     difference = end_time - start_time
-    print(difference.total_seconds()) #TODO
+    print(difference.total_seconds(), "s")
 
 
 if __name__ == "__main__":

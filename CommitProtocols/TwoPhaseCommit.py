@@ -99,7 +99,7 @@ class TwoPhaseCommitParticipant(GenericModel):
     """
         Class for the two-phase commit participant.
     """
-    def __init__(self, componentname, componentinstancenumber, local_commit=TwoPhaseLocalCommitEventTypes.COMMIT, context=None, configurationparameters=None, num_worker_threads=1, topology=None):
+    def __init__(self, componentname, componentinstancenumber, local_commit=TwoPhaseLocalCommitEventTypes.LOCAL_COMMIT, context=None, configurationparameters=None, num_worker_threads=1, topology=None):
         """
             Initialize the two-phase commit participant and set up event handlers.
 
@@ -122,11 +122,6 @@ class TwoPhaseCommitParticipant(GenericModel):
         """
             Handler for VOTE_REQUEST event.
             Depending on local event type, sends VOTE_COMMIT or VOTE_ABORT to coordinator.
-
-            Parameters
-            ----------
-            local_event : TwoPhaseParticipantEventTypes
-                Local commit event type
         """
         if self.local_commit == TwoPhaseLocalCommitEventTypes.LOCAL_COMMIT:
             self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_RESPONSE,
@@ -137,7 +132,6 @@ class TwoPhaseCommitParticipant(GenericModel):
             self.send_up(Event(self, TwoPhaseCoordinatorEventTypes.VOTE_RESPONSE,
                                TwoPhaseLocalCommitEventTypes.LOCAL_ABORT))
             logger.info(f"NAME:{self.componentname} SEND ABORT VOTE")
-
 
 
     def on_commit(self, eventobj: Event):
