@@ -14,6 +14,8 @@
    abstract
    introduction
    algorithm
+   results
+   conclusion
 
 
 
