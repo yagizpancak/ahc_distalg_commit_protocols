@@ -58,7 +58,7 @@ def main():
     topo.exit()
 
     difference = end_time - start_time
-    print(difference.total_seconds()) #TODO
+    print(difference.total_seconds(), "s")
 
 
 if __name__ == "__main__":

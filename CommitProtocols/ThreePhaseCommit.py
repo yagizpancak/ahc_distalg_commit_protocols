@@ -60,7 +60,6 @@ class ThreePhaseCommitCoordinator(GenericModel):
                 Component name
             componentinstancenumber :int
                 Component instance number
-
         """
         super().__init__(componentname, componentinstancenumber, context, configurationparameters, num_worker_threads, topology)
 
@@ -87,7 +86,7 @@ class ThreePhaseCommitCoordinator(GenericModel):
             Handler for VOTE_RESPONSE event.
             Increments commit count and checks if all participants have voted commit.
             If so, sends COMMIT to all participants.
-            If one participant have voted send ABORT to all participants.
+            If one participant have voted send READY_REQUEST to all participants.
         """
         self.commit_count += 1
         if eventobj.eventcontent == ThreePhaseLocalCommitEventTypes.LOCAL_ABORT:
@@ -126,7 +125,6 @@ class ThreePhaseCommitParticipant(GenericModel):
                 Component name
             componentinstancenumber :int
                 Component instance number
-
         """
         super().__init__(componentname, componentinstancenumber, context, configurationparameters, num_worker_threads, topology)
         self.local_commit = local_commit
@@ -141,11 +139,6 @@ class ThreePhaseCommitParticipant(GenericModel):
         """
             Handler for VOTE_REQUEST event.
             Depending on local event type, sends VOTE_COMMIT or VOTE_ABORT to coordinator.
-
-            Parameters
-            ----------
-            local_event : ThreePhaseParticipantEventTypes
-                Local commit event type
         """
         if self.local_commit == ThreePhaseLocalCommitEventTypes.LOCAL_COMMIT:
             self.send_up(Event(self, ThreePhaseCoordinatorEventTypes.VOTE_RESPONSE,
